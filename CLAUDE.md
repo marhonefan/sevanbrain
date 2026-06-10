@@ -7,6 +7,9 @@ suggests Supabase for 1000+ files. GStack teaches agents how to code. GBrain tea
 agents everything else: brain ops, signal detection, content ingestion, enrichment,
 cron scheduling, reports, identity, and access control.
 
+## Principle
+This project is forked from Gbrain. As a general rule, existing code shall remain unmodified; new features will be implemented via additional files to enable seamless upgrades in the future.
+
 ## North Star
 
 gbrain aims to be the **next Postgres for memory**: the most well-tested, widest-coverage,
