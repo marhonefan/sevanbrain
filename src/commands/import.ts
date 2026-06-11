@@ -12,6 +12,7 @@ import {
   isMarkdownFilePath,
   isImageFilePath as isImageFilePathFromSync,
   pruneDir,
+  matchesAnyGlob,
   type SyncStrategy,
 } from '../core/sync.ts';
 import { sortNewestFirst } from '../core/sort-newest-first.ts';
@@ -45,7 +46,7 @@ export interface RunImportResult {
 export async function runImport(
   engine: BrainEngine,
   args: string[],
-  opts: { commit?: string; strategy?: SyncStrategy; sourceId?: string; managedBookmark?: boolean } = {},
+  opts: { commit?: string; strategy?: SyncStrategy; sourceId?: string; managedBookmark?: boolean; include?: string[]; exclude?: string[] } = {},
 ): Promise<RunImportResult> {
   const noEmbed = args.includes('--no-embed');
   const fresh = args.includes('--fresh');
@@ -176,7 +177,7 @@ export async function runImport(
   const strategy: SyncStrategy = opts.strategy ?? 'markdown';
   const _walkT0 = Date.now();
   console.error(`[gbrain phase] import.collect_files start dir=${dir} strategy=${strategy}`);
-  const allFiles = collectSyncableFiles(dir, { strategy });
+  const allFiles = collectSyncableFiles(dir, { strategy, include: opts.include, exclude: opts.exclude });
   console.error(
     `[gbrain phase] import.collect_files done ${Date.now() - _walkT0}ms files=${allFiles.length}`,
   );
@@ -485,6 +486,10 @@ function resolveMaxWalkDepth(): number {
 
 interface CollectOpts {
   strategy?: SyncStrategy;
+  /** Only collect repo-relative paths matching any glob (same semantic as isSyncable's include). */
+  include?: string[];
+  /** Skip repo-relative paths matching any glob (same semantic as isSyncable's exclude). */
+  exclude?: string[];
 }
 
 /**
@@ -637,6 +642,11 @@ export function collectSyncableFiles(dir: string, opts: CollectOpts = {}): strin
         walk(full, depth + 1);
       } else if (stat.isFile()) {
         if (!isCollectibleForWalker(entry, strategy, multimodalOn)) continue;
+        // include/exclude globs match repo-relative paths — the same form
+        // isSyncable filters on the incremental-diff path (core/sync.ts:343).
+        const rel = relative(dir, full);
+        if (opts.include && opts.include.length > 0 && !matchesAnyGlob(rel, opts.include)) continue;
+        if (opts.exclude && opts.exclude.length > 0 && matchesAnyGlob(rel, opts.exclude)) continue;
         files.push(full);
       }
     }

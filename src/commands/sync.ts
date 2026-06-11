@@ -743,6 +743,15 @@ export interface SyncOpts {
   /** Multi-repo: sync strategy override (markdown, code, auto). */
   strategy?: 'markdown' | 'code' | 'auto';
   /**
+   * Only sync repo-relative paths matching any glob (threaded into
+   * isSyncable's existing include semantic, core/sync.ts:343, and the
+   * full-sync walker). Use case: kb-only import of a layered-ACL wiki
+   * (`--include "kb/**"`).
+   */
+  include?: string[];
+  /** Skip repo-relative paths matching any glob (isSyncable exclude semantic). */
+  exclude?: string[];
+  /**
    * Number of parallel workers for the import phase. When > 1, each worker
    * gets its own small Postgres connection pool and files are dispatched via
    * an atomic queue index (same pattern as `import --workers N`).
@@ -1835,8 +1844,10 @@ async function performSyncInner(engine: BrainEngine, opts: SyncOpts): Promise<Sy
   }
   const manifest = delta.manifest;
 
-  // Filter to syncable files (strategy-aware)
-  const syncOpts = opts.strategy ? { strategy: opts.strategy } : undefined;
+  // Filter to syncable files (strategy-aware; include/exclude globs ride along)
+  const syncOpts = (opts.strategy || opts.include?.length || opts.exclude?.length)
+    ? { strategy: opts.strategy, include: opts.include, exclude: opts.exclude }
+    : undefined;
   // #1970 (F-C): a rename whose DESTINATION is unsyncable drops out of BOTH
   // `renamed` (only `r.to` is kept below) AND `deleted` (git emits it as `R`,
   // not `D`), leaving the OLD page stale. Fold the source side into the delete
@@ -2965,7 +2976,7 @@ async function performFullSync(
   // code --dry-run` always reported zero files even when ~1500 code
   // files were waiting.
   if (opts.dryRun) {
-    const allFiles = collectSyncableFiles(repoPath, { strategy: opts.strategy ?? 'markdown' });
+    const allFiles = collectSyncableFiles(repoPath, { strategy: opts.strategy ?? 'markdown', include: opts.include, exclude: opts.exclude });
     slog(
       `Full-sync dry run (strategy=${opts.strategy ?? 'markdown'}): ` +
       `${allFiles.length} file(s) would be imported ` +
@@ -3007,6 +3018,8 @@ async function performFullSync(
     commit: headCommit,
     strategy: opts.strategy,
     sourceId: opts.sourceId,
+    include: opts.include,
+    exclude: opts.exclude,
     // issue #1939: performFullSync owns the failure ledger + bookmark via the
     // shared gate below; don't let runImport double-record or write its own.
     managedBookmark: true,
@@ -3104,13 +3117,15 @@ async function performFullSync(
   let reconciledDeletes = 0;
   if (opts.sourceId) {
     const sid = opts.sourceId;
-    const reconcileSyncOpts = opts.strategy ? { strategy: opts.strategy } : undefined;
+    const reconcileSyncOpts = (opts.strategy || opts.include?.length || opts.exclude?.length)
+      ? { strategy: opts.strategy, include: opts.include, exclude: opts.exclude }
+      : undefined;
     // collectSyncableFiles returns ABSOLUTE paths; source_path is stored
     // repo-relative (importFile uses `relative(dir, filePath)`), so relativize
     // to the same form before membership-testing — otherwise every page looks
     // stale and the reconcile would wrongly delete live pages.
     const current = new Set(
-      collectSyncableFiles(repoPath, { strategy: opts.strategy ?? 'markdown' })
+      collectSyncableFiles(repoPath, { strategy: opts.strategy ?? 'markdown', include: opts.include, exclude: opts.exclude })
         .map(abs => relative(repoPath, abs)),
     );
     const rows = await engine.executeRaw<{ slug: string; source_path: string | null }>(
@@ -3317,6 +3332,9 @@ Options:
   --watch              Re-sync continuously on an interval.
   --interval N         Watch-mode interval in seconds (default 60).
   --no-pull            Skip 'git pull' before the sync (useful for tests).
+  --include <glob>     Only sync repo-relative paths matching the glob
+                       (repeatable; e.g. --include "kb/**" for kb-only import).
+  --exclude <glob>     Skip repo-relative paths matching the glob (repeatable).
   --no-schema-pack     Skip loading the active schema pack (no per-file pack
                        regex runs; pages use legacy prefix typing). Escape
                        hatch if a suspect pack regex is wedging sync.
@@ -3357,6 +3375,9 @@ See also:
   const noPull = args.includes('--no-pull');
   const noEmbed = args.includes('--no-embed');
   const noExtract = args.includes('--no-extract'); // v0.42.7 #1696
+  // --include/--exclude <glob>: repeatable, repo-relative path globs (kb-only import).
+  const includeGlobs = args.filter((a, i) => args[i - 1] === '--include');
+  const excludeGlobs = args.filter((a, i) => args[i - 1] === '--exclude');
   const skipFailed = args.includes('--skip-failed');
   const retryFailed = args.includes('--retry-failed');
   const noSchemaPack = args.includes('--no-schema-pack'); // v0.41.37.0 #1569
@@ -3702,6 +3723,8 @@ See also:
         skipFailed, retryFailed, noSchemaPack,
         sourceId: src.id,
         strategy: cfg.strategy,
+        include: includeGlobs.length > 0 ? includeGlobs : undefined,
+        exclude: excludeGlobs.length > 0 ? excludeGlobs : undefined,
         concurrency,
         signal: composeAbortSignals(allInterrupt.signal, controller?.signal),
       };
@@ -3916,6 +3939,8 @@ See also:
   const opts: SyncOpts = {
     repoPath, dryRun, full, noPull, noEmbed, noExtract, skipFailed, retryFailed, noSchemaPack, sourceId,
     strategy: strategyArg, concurrency,
+    include: includeGlobs.length > 0 ? includeGlobs : undefined,
+    exclude: excludeGlobs.length > 0 ? excludeGlobs : undefined,
     signal: composeAbortSignals(singleSourceInterrupt.signal, singleSourceController?.signal),
   };
 
