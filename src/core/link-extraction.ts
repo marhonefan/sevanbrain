@@ -28,7 +28,9 @@ import { ensureWellFormed } from './text-safe.ts';
  * OR updated_at > links_extracted_at`. It is an ISO-8601 string (NOT a number) —
  * the column is TIMESTAMPTZ and the predicate binds it as `::timestamptz`.
  */
-export const LINK_EXTRACTOR_VERSION_TS = '2026-05-31T00:00:00Z';
+// 2026-06-11: kb/ admitted to DIR_PATTERN + pack frontmatter_links wiring
+// (llm-wiki fork, PR-B) — bump so existing pages re-extract via --stale.
+export const LINK_EXTRACTOR_VERSION_TS = '2026-06-11T12:00:00Z';
 
 // ─── Entity references ──────────────────────────────────────────
 
@@ -1105,11 +1107,17 @@ export async function extractFrontmatterLinks(
         for (const entry of Array.isArray(value) ? value : [value]) {
           if (typeof entry !== 'string' || !entry) continue;
           // Wiki relation fields hold exact path-style slugs (kb/<bc>/.../<page>),
-          // not fuzzy names — resolver.resolve()'s slug fast-path only accepts
+          // optionally wikilink-wrapped ("[[kb/...|Display]]") — both observed in
+          // production frontmatter. Normalize: strip [[...]], |label, #anchor, .md.
+          // Not fuzzy names — resolver.resolve()'s slug fast-path only accepts
           // two-segment dir/name shapes, so skip it. Target existence is
           // enforced downstream by resolveCandidateSources' allSlugs check
           // (missing target → row silently dropped, per PRD §8.2 semantics).
-          const name = entry.endsWith('.md') ? entry.slice(0, -3) : entry;
+          let name = entry.trim();
+          if (name.startsWith('[[') && name.endsWith(']]')) name = name.slice(2, -2);
+          name = name.split('|')[0].split('#')[0].trim();
+          if (name.endsWith('.md')) name = name.slice(0, -3);
+          if (!name) continue;
           candidates.push({
             fromSlug: slug,
             targetSlug: name,

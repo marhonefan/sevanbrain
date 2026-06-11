@@ -1,6 +1,6 @@
 ---
 type: solution
-supersedes: [kb/demo/entities/acme]
+supersedes: ["[[kb/demo/entities/acme|Acme 实体]]"]
 ---
 # Pay Solution
 
