@@ -1,0 +1,148 @@
+# llm-wiki — LLM Wiki (layered-ACL knowledge wiki) structure declarations.
+#
+# llwiki-sevanbrain-upgrade T070 (PRD §7.3): declares kb/ page types and the
+# frontmatter relation-field → typed-edge map for LLM Wiki sources (kb-only
+# import via `sync --include "kb/**"`). Governance config authority stays in
+# each wiki's _meta/ — this pack declares structure only, no per-wiki config.
+#
+# extends gbrain-base: inherits universal behavior (incl. related_to link
+# type); this pack adds kb path typing + the wiki relation vocabulary.
+# extractable/expert_routing stay false: enrichment & expert routing are
+# disabled for wiki sources (PRD §一 主体性纪律 4 — no autonomous rewriting).
+
+api_version: gbrain-schema-pack-v1
+name: llm-wiki
+version: 1.0.0
+description: LLM Wiki kb page types + frontmatter typed-link declarations (kb-only layered-ACL wiki)
+gbrain_min_version: 0.42.0
+extends: gbrain-base
+borrow_from: []
+
+page_types:
+  # Stronger-signal types first (override the kb/ fallback below).
+  - name: kb-entity
+    primitive: entity
+    path_prefixes:
+      - "kb/*/entities/"
+    aliases: []
+    extractable: false
+    expert_routing: false
+  - name: kb-solution
+    primitive: concept
+    path_prefixes:
+      - "kb/*/solutions/"
+    aliases: []
+    extractable: false
+    expert_routing: false
+  - name: kb-playbook
+    primitive: concept
+    path_prefixes:
+      - "kb/*/playbooks/"
+    aliases: []
+    extractable: false
+    expert_routing: false
+  - name: kb-decision
+    primitive: concept
+    path_prefixes:
+      - "kb/*/decisions/"
+    aliases: []
+    extractable: false
+    expert_routing: false
+  - name: kb-concept            # fallback for all other kb/ pages
+    primitive: concept
+    path_prefixes:
+      - "kb/"
+    aliases: []
+    extractable: false
+    expert_routing: false
+
+# related_to is inherited from gbrain-base; only the wiki-specific relation
+# verbs are declared here. No body-verb inference — these edges come from
+# frontmatter fields (see frontmatter_links below).
+link_types:
+  - name: supersedes
+    inverse: superseded_by
+  - name: superseded_by
+    inverse: supersedes
+  - name: prerequisite
+  - name: merged_from
+
+# Expanded per page_type: the manifest schema requires page_type on every
+# rule (frontmatterLinkTypeFromPack supports untyped matching, but the zod
+# schema does not yet — upstream PR-B candidate). 5 kb types x 5 rules.
+frontmatter_links:
+  - page_type: kb-entity
+    fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
+    link_type: related_to
+  - page_type: kb-entity
+    fields: [supersedes]
+    link_type: supersedes
+  - page_type: kb-entity
+    fields: [superseded_by]
+    link_type: superseded_by
+  - page_type: kb-entity
+    fields: [prerequisites]
+    link_type: prerequisite
+  - page_type: kb-entity
+    fields: [merged_from]
+    link_type: merged_from
+  - page_type: kb-solution
+    fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
+    link_type: related_to
+  - page_type: kb-solution
+    fields: [supersedes]
+    link_type: supersedes
+  - page_type: kb-solution
+    fields: [superseded_by]
+    link_type: superseded_by
+  - page_type: kb-solution
+    fields: [prerequisites]
+    link_type: prerequisite
+  - page_type: kb-solution
+    fields: [merged_from]
+    link_type: merged_from
+  - page_type: kb-playbook
+    fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
+    link_type: related_to
+  - page_type: kb-playbook
+    fields: [supersedes]
+    link_type: supersedes
+  - page_type: kb-playbook
+    fields: [superseded_by]
+    link_type: superseded_by
+  - page_type: kb-playbook
+    fields: [prerequisites]
+    link_type: prerequisite
+  - page_type: kb-playbook
+    fields: [merged_from]
+    link_type: merged_from
+  - page_type: kb-decision
+    fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
+    link_type: related_to
+  - page_type: kb-decision
+    fields: [supersedes]
+    link_type: supersedes
+  - page_type: kb-decision
+    fields: [superseded_by]
+    link_type: superseded_by
+  - page_type: kb-decision
+    fields: [prerequisites]
+    link_type: prerequisite
+  - page_type: kb-decision
+    fields: [merged_from]
+    link_type: merged_from
+  - page_type: kb-concept
+    fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
+    link_type: related_to
+  - page_type: kb-concept
+    fields: [supersedes]
+    link_type: supersedes
+  - page_type: kb-concept
+    fields: [superseded_by]
+    link_type: superseded_by
+  - page_type: kb-concept
+    fields: [prerequisites]
+    link_type: prerequisite
+  - page_type: kb-concept
+    fields: [merged_from]
+    link_type: merged_from

@@ -112,6 +112,9 @@ function defaultPackLocator(name: string): string | null {
     // Ships as install default (Lane E T17) + via gbrain onboard pack
     // upgrade flow (the unify-types Minion handler).
     'gbrain-base-v2',
+    // llm-wiki (fork): layered-ACL knowledge wiki structure declarations
+    // (kb page types + frontmatter typed-link map). llwiki-sevanbrain-upgrade.
+    'llm-wiki',
   ];
   if (BUNDLED.includes(name)) {
     // Resolve bundled YAML relative to this source file. Works in both
