@@ -71,78 +71,78 @@ link_types:
 # rule (frontmatterLinkTypeFromPack supports untyped matching, but the zod
 # schema does not yet — upstream PR-B candidate). 5 kb types x 5 rules.
 frontmatter_links:
-  - page_type: kb-entity
+  - page_type: entity
     fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
     link_type: related_to
-  - page_type: kb-entity
+  - page_type: entity
     fields: [supersedes]
     link_type: supersedes
-  - page_type: kb-entity
+  - page_type: entity
     fields: [superseded_by]
     link_type: superseded_by
-  - page_type: kb-entity
+  - page_type: entity
     fields: [prerequisites]
     link_type: prerequisite
-  - page_type: kb-entity
+  - page_type: entity
     fields: [merged_from]
     link_type: merged_from
-  - page_type: kb-solution
+  - page_type: solution
     fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
     link_type: related_to
-  - page_type: kb-solution
+  - page_type: solution
     fields: [supersedes]
     link_type: supersedes
-  - page_type: kb-solution
+  - page_type: solution
     fields: [superseded_by]
     link_type: superseded_by
-  - page_type: kb-solution
+  - page_type: solution
     fields: [prerequisites]
     link_type: prerequisite
-  - page_type: kb-solution
+  - page_type: solution
     fields: [merged_from]
     link_type: merged_from
-  - page_type: kb-playbook
+  - page_type: playbook
     fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
     link_type: related_to
-  - page_type: kb-playbook
+  - page_type: playbook
     fields: [supersedes]
     link_type: supersedes
-  - page_type: kb-playbook
+  - page_type: playbook
     fields: [superseded_by]
     link_type: superseded_by
-  - page_type: kb-playbook
+  - page_type: playbook
     fields: [prerequisites]
     link_type: prerequisite
-  - page_type: kb-playbook
+  - page_type: playbook
     fields: [merged_from]
     link_type: merged_from
-  - page_type: kb-decision
+  - page_type: decision
     fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
     link_type: related_to
-  - page_type: kb-decision
+  - page_type: decision
     fields: [supersedes]
     link_type: supersedes
-  - page_type: kb-decision
+  - page_type: decision
     fields: [superseded_by]
     link_type: superseded_by
-  - page_type: kb-decision
+  - page_type: decision
     fields: [prerequisites]
     link_type: prerequisite
-  - page_type: kb-decision
+  - page_type: decision
     fields: [merged_from]
     link_type: merged_from
-  - page_type: kb-concept
+  - page_type: concept
     fields: [related_concepts, related_playbooks, related_decisions, related_events, related_entities]
     link_type: related_to
-  - page_type: kb-concept
+  - page_type: concept
     fields: [supersedes]
     link_type: supersedes
-  - page_type: kb-concept
+  - page_type: concept
     fields: [superseded_by]
     link_type: superseded_by
-  - page_type: kb-concept
+  - page_type: concept
     fields: [prerequisites]
     link_type: prerequisite
-  - page_type: kb-concept
+  - page_type: concept
     fields: [merged_from]
     link_type: merged_from

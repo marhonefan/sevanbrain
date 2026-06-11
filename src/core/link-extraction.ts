@@ -83,7 +83,9 @@ export type LinkResolutionType = 'qualified' | 'unqualified';
  *   - Our domain extensions: tech, finance, personal, openclaw (domain-organized wikis)
  *   - Our entity prefix: entities (we kept some legacy entities/projects/ pages)
  */
-const DIR_PATTERN = '(?:people|companies|meetings|concepts|deal|civic|project|projects|source|media|yc|tech|finance|personal|openclaw|entities)';
+// llm-wiki (fork → upstream PR candidate: derive from active pack page_types.path_prefixes):
+// 'kb' admits LLM-wiki path-style wikilinks ([[kb/<bc>/<page>]]) as exact-slug refs.
+const DIR_PATTERN = '(?:people|companies|meetings|concepts|deal|civic|project|projects|source|media|yc|tech|finance|personal|openclaw|entities|kb)';
 
 /**
  * Match `[Name](path)` markdown links pointing to entity directories.
@@ -1085,6 +1087,42 @@ export async function extractFrontmatterLinks(
       }
     }
   }
+
+  // llm-wiki (fork → upstream PR-B): pack-declared frontmatter_links ride the
+  // same resolve/candidate path as the hardcoded map above — this is the wiring
+  // the v0.38 manifest field + frontmatterLinkTypeFromPack() were designed for.
+  // Fail-soft: a pack load error must never break extraction (the legacy map
+  // already ran). Field names don't overlap the hardcoded map, so no dedupe.
+  try {
+    const { loadActivePack } = await import('./schema-pack/load-active.ts');
+    const { loadConfig } = await import('./config.ts');
+    const pack = await loadActivePack({ cfg: loadConfig(), remote: false });
+    for (const rule of pack.manifest.frontmatter_links ?? []) {
+      if (rule.page_type !== pageType) continue;
+      for (const field of rule.fields) {
+        const value = frontmatter[field];
+        if (value == null) continue;
+        for (const entry of Array.isArray(value) ? value : [value]) {
+          if (typeof entry !== 'string' || !entry) continue;
+          // Wiki relation fields hold exact path-style slugs (kb/<bc>/.../<page>),
+          // not fuzzy names — resolver.resolve()'s slug fast-path only accepts
+          // two-segment dir/name shapes, so skip it. Target existence is
+          // enforced downstream by resolveCandidateSources' allSlugs check
+          // (missing target → row silently dropped, per PRD §8.2 semantics).
+          const name = entry.endsWith('.md') ? entry.slice(0, -3) : entry;
+          candidates.push({
+            fromSlug: slug,
+            targetSlug: name,
+            linkType: rule.link_type,
+            context: `frontmatter.${field}: ${name}`,
+            linkSource: 'frontmatter',
+            originSlug: slug,
+            originField: field,
+          });
+        }
+      }
+    }
+  } catch { /* fail-soft: pack unavailable → legacy-map-only behavior */ }
 
   return { candidates, unresolved };
 }

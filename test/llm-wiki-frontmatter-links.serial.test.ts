@@ -84,6 +84,14 @@ describe('llm-wiki frontmatter_links wiring (PRD §8.2)', () => {
         );
         expect(sync.exitCode).toBe(0);
 
+        // sync defers link extraction (pages land "un-extracted"); run it explicitly.
+        const extract = await runCli(
+          ['extract', '--stale'],
+          { ...env, GBRAIN_SOURCE: 'mini' },
+          120_000,
+        );
+        expect(extract.exitCode).toBe(0);
+
         const links = await runCli(
           ['call', 'get_links', JSON.stringify({ slug: 'kb/demo/entities/acme' })],
           { ...env, GBRAIN_SOURCE: 'mini' },
