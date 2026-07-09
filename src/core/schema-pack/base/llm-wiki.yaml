@@ -12,8 +12,18 @@
 
 api_version: gbrain-schema-pack-v1
 name: llm-wiki
-version: 1.0.0
+version: 1.1.0
 description: LLM Wiki kb page types + frontmatter typed-link declarations (kb-only layered-ACL wiki)
+#
+# v1.1.0 (SR 知识库本体论&DDD重构0709): +kb-aggregate/kb-process page_types (DDD Hub/Spoke,
+#   three-tier paths kb/<domain>/<subdomain>/<bc>/{aggregates,processes}/) + ontology edge
+#   link_types (calls_to_create/calls_to_modify/reads/contains).
+#   NOTE (OQ-01 conclusion B): depends_on ({node, relation}) and contains ({name, kind}) are
+#   STRUCTURED frontmatter fields, not plain wikilink lists — the current schema-pack DSL cannot
+#   declare edges from them. They are materialized by wiki-toolkit gbrain_sync.sh chunk-preprocess
+#   (cross-BC pages) before sync; doc-level chunking (H2 split + [bc:x] extraction) is likewise a
+#   sync-preprocess concern, NOT a schema-pack key (an unknown top-level key would fail the pack's
+#   zod validation and break all wiki sync). extractable/expert_routing stay false.
 gbrain_min_version: 0.42.0
 extends: gbrain-base
 borrow_from: []
@@ -48,6 +58,24 @@ page_types:
     aliases: []
     extractable: false
     expert_routing: false
+  - name: kb-aggregate          # v1.1.0 DDD 聚合根 Hub（三层路径）
+    primitive: concept
+    path_prefixes:
+      - "kb/**/aggregates/"
+      - "kb/*/*/*/aggregates/"
+      - "kb/*/aggregates/"
+    aliases: []
+    extractable: false
+    expert_routing: false
+  - name: kb-process            # v1.1.0 DDD 流程编排 Spoke（三层路径）
+    primitive: concept
+    path_prefixes:
+      - "kb/**/processes/"
+      - "kb/*/*/*/processes/"
+      - "kb/*/processes/"
+    aliases: []
+    extractable: false
+    expert_routing: false
   - name: kb-concept            # fallback for all other kb/ pages
     primitive: concept
     path_prefixes:
@@ -66,6 +94,11 @@ link_types:
     inverse: supersedes
   - name: prerequisite
   - name: merged_from
+  # v1.1.0 ontology 边词汇（gbrain_sync 预处理物化时使用；见文件头 OQ-01 conclusion B）
+  - name: calls_to_create
+  - name: calls_to_modify
+  - name: reads
+  - name: contains
 
 # Expanded per page_type: the manifest schema requires page_type on every
 # rule (frontmatterLinkTypeFromPack supports untyped matching, but the zod
